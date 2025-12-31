@@ -1,4 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore.Metadata.Builders;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using OnionVb02.Domain.Entities;
 using System;
 using System.Collections.Generic;
@@ -20,6 +21,10 @@ namespace OnionVb02.Persistence.Configurations
                 x.ProductId
             }).IsUnique();
 
+            builder.HasOne(x => x.Order)
+                .WithMany(x => x.OrderDetails)
+                .HasForeignKey(x => x.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

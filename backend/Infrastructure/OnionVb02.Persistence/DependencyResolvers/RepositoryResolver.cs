@@ -21,7 +21,6 @@ namespace OnionVb02.Persistence.DependencyResolvers
             services.AddScoped<ICategoryRepository,CategoryRepository>();
             services.AddScoped<IProductRepository,ProductRepository>();
             services.AddScoped<IOrderRepository,OrderRepository>();
-            services.AddScoped<IOrderDetailRepository,OrderDetailRepository>();
         
           
         }

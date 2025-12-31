@@ -9,5 +9,8 @@ namespace OnionVb02.Contract.RepositoryInterfaces
 {
     public interface IOrderRepository : IRepository<Order>
     {
+        Task<Order> GetByIdWithDetailsAsync(int id);
+
+        Task<List<Order>> GetAllWithDetailsAsync();
     }
 }

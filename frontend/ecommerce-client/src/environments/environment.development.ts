@@ -1,4 +1,12 @@
 export const environment = {
   production: false,
-  apiUrl: 'http://localhost:5245/api'
+  baseUrl: 'http://localhost:5245/api',
+  endpoints: {
+    category: 'categories',
+    product: 'products',
+    appUser: 'appUsers',
+    appUserProfile: 'appUserProfiles',
+    order: 'orders',
+    orderDetail: 'orderDetail'
+  }
 };

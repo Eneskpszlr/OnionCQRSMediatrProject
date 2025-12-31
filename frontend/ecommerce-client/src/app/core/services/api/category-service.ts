@@ -2,7 +2,6 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { lastValueFrom } from 'rxjs';
 import { environment } from '../../../../environments/environment';
-
 import { Category } from '../../models/category.model';
 import { CategoryUpsert } from '../../models/category-upsert.model';
 
@@ -46,5 +45,4 @@ export class CategoryService {
       })
     );
   }
-  
 }

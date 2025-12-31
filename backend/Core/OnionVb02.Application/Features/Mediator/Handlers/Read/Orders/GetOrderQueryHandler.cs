@@ -18,14 +18,24 @@ namespace OnionVb02.Application.CqrsAndMediatr.Mediator.Handlers.Read.Orders
 
         public async Task<List<GetOrderQueryResult>> Handle(GetOrderQuery request, CancellationToken cancellationToken)
         {
-            List<Order> values = await _repository.GetAllAsync();
+            List<Order> values = await _repository.GetAllWithDetailsAsync();
             if (values == null)
                 throw new NotFoundException("Sipariş bulunamadı");
             return values.Select(x => new GetOrderQueryResult
             {
                 Id = x.Id,
                 ShippingAddress = x.ShippingAddress,
-                AppUserId = x.AppUserId
+                AppUserId = x.AppUserId,
+                CreatedDate = x.CreatedDate,
+
+                Items = x.OrderDetails.Select(d => new OrderItemListDto
+                {
+                    ProductName = d.Product.ProductName,
+                    UnitPrice = d.Product.UnitPrice,
+                    // Quantity = d.Quantity
+                }).ToList()
+
+
             }).ToList();
         }
     }

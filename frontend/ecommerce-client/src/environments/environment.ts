@@ -1,4 +1,13 @@
 export const environment = {
-  production: true,
-  apiUrl: 'http://localhost:5245/api'
+  production: false,
+  baseUrl: 'http://localhost:5245/api',
+  // Endpointleri buraya ekleyerek hardcoded stringlerden kurtuluyoruz
+  endpoints: {
+    category: 'categories',
+    product: 'products',
+    appUser: 'appUsers',
+    appUserProfile: 'appUserProfiles',
+    order: 'orders',
+    orderDetail: 'orderDetail'
+  }
 };

@@ -29,6 +29,23 @@ namespace OnionVb02.Application.CqrsAndMediatr.Mediator.Handlers.Modify.Orders
                 Status = Domain.Enums.DataStatus.Inserted
             };
 
+            if (request.Items != null && request.Items.Any())
+            {
+                foreach (var itemDto in request.Items)
+                {
+                    // Yeni bir detay oluşturuyoruz
+                    var detail = new OrderDetail
+                    {
+                        ProductId = itemDto.ProductId,
+                        // Quantity = itemDto.Quantity, // İleride eklenebilir
+                        Order = order
+                    };
+
+                    // Detayı, siparişin listesine ekliyoruz (Aggregate Mantığı)
+                    order.OrderDetails.Add(detail);
+                }
+            }
+
             await _repository.CreateAsync(order);
 
             return new CreateOrderCommandResult
