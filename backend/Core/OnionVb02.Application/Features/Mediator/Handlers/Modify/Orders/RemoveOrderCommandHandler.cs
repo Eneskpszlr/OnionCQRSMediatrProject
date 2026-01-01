@@ -25,6 +25,7 @@ namespace OnionVb02.Application.CqrsAndMediatr.Mediator.Handlers.Modify.Orders
 
             return new RemoveOrderCommandResult
             {
+                Success = true,
                 EntityId = request.Id
             };
         }

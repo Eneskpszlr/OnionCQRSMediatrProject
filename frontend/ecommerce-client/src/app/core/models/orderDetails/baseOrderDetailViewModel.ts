@@ -1,1 +1,0 @@
-export abstract class baseOrderDetailViewModel.ts

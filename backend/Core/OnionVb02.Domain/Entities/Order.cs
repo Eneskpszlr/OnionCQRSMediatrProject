@@ -15,5 +15,11 @@ namespace OnionVb02.Domain.Entities
         public virtual AppUser AppUser { get; set; }
         public virtual ICollection<OrderDetail> OrderDetails { get; set; }
 
+
+        public Order()
+        {
+            OrderDetails = new List<OrderDetail>();
+            CreatedDate = DateTime.Now;
+        }
     }
 }

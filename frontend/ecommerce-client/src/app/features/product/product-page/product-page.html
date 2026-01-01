@@ -1,83 +1,72 @@
-<h3>Product List</h3>
+<div class="container">
+  <h3>Ürün Yönetimi</h3>
 
-<form (submit)="addProduct($event)">
-  <input
-    type="text"
-    placeholder="Ürün Adı"
-    [value]="newProductName()"
-    (input)="onNewProductNameChange($event)"
-  />
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Ürün Adı</th>
+        <th>Fiyat</th>
+        <th>Kategori ID</th> <th>İşlemler</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (p of products(); track p.id) {
+        <tr>
+          <td>{{ p.id }}</td>
+          <td>{{ p.productName }}</td>
+          <td>{{ p.unitPrice | currency:'TRY':'symbol-narrow' }}</td>
+          <td>{{ p.categoryId }}</td>
+          <td>
+            <button (click)="startUpdate(p)">Düzenle</button>
+            <button (click)="onDelete(p.id)">Sil</button>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
 
-  <input
-    type="number"
-    placeholder="Fiyat"
-    [value]="newUnitPrice()"
-    (input)="onNewUnitPriceChange($event)"
-  />
+  @if (selectedProduct()) {
+    <h4>Ürünü Düzenle</h4>
+    <form [formGroup]="updateForm" (ngSubmit)="onUpdate()">
+      <input type="text" formControlName="productName" placeholder="Ürün Adı">
+      
+      <input type="number" formControlName="unitPrice" placeholder="Fiyat">
+      
+      <select formControlName="categoryId">
+        <option [ngValue]="0" disabled>Kategori Seçiniz</option>
+        @for (c of categories(); track c.id) {
+            <option [ngValue]="c.id">{{ c.categoryName }}</option>
+        }
+      </select>
 
-  <input
-    type="number"
-    placeholder="Category Id"
-    [value]="newCategoryId()"
-    (input)="onNewCategoryIdChange($event)"
-  />
+      <button type="submit">Güncelle</button>
+      <button type="button" (click)="cancelUpdate()">İptal</button>
+    </form>
+  } @else {
+    <h4>Yeni Ürün Ekle</h4>
+    <form [formGroup]="createForm" (ngSubmit)="onCreate()">
+      <div class="form-group">
+        <input type="text" formControlName="productName" placeholder="Ürün Adı">
+        <small class="error-text">{{ getErrorMessage(createForm, 'productName') }}</small>
+      </div>
 
-  <button type="submit">Ekle</button>
-</form>
+      <div class="form-group">
+        <input type="number" formControlName="unitPrice" placeholder="Fiyat">
+        <small class="error-text">{{ getErrorMessage(createForm, 'unitPrice') }}</small>
+      </div>
 
-<hr />
+      <div class="form-group">
+        <select formControlName="categoryId">
+            <option [ngValue]="0" disabled>Kategori Seçiniz</option>
+            @for (c of categories(); track c.id) {
+                <option [ngValue]="c.id">{{ c.categoryName }}</option>
+            }
+        </select>
+        <small class="error-text">{{ getErrorMessage(createForm, 'categoryId') }}</small>
+      </div>
 
-<table>
-  <thead>
-    <tr>
-      <th>Id</th>
-      <th>Ürün</th>
-      <th>Fiyat</th>
-      <th>CategoryId</th>
-      <th>İşlemler</th>
-    </tr>
-  </thead>
-
-  <tbody>
-    <tr *ngFor="let product of products()">
-      <td>{{ product.id }}</td>
-      <td>{{ product.productName }}</td>
-      <td>{{ product.unitPrice }}</td>
-      <td>{{ product.categoryId }}</td>
-      <td>
-        <button (click)="startEdit(product)">Güncelle</button>
-        <button (click)="deleteProduct(product.id)">Sil</button>
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-<div *ngIf="selectedProduct()">
-  <h4>Seçili Ürün Güncelle</h4>
-
-  <form (submit)="updateProduct($event)">
-    <input
-      type="text"
-      placeholder="Ürün Adı"
-      [value]="editProductName()"
-      (input)="onEditProductNameChange($event)"
-    />
-
-    <input
-      type="number"
-      placeholder="Fiyat"
-      [value]="editUnitPrice()"
-      (input)="onEditUnitPriceChange($event)"
-    />
-
-    <input
-      type="number"
-      placeholder="Category Id"
-      [value]="editCategoryId()"
-      (input)="onEditCategoryIdChange($event)"
-    />
-
-    <button type="submit">Kaydet</button>
-    <button type="button" (click)="cancelEdit()">İptal</button>
-  </form>
+      <button type="submit">Kaydet</button>
+    </form>
+  }
 </div>

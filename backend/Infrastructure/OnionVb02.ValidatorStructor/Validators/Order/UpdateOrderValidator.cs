@@ -26,8 +26,12 @@ namespace OnionVb02.ValidatorStructor.Validators.Order
                 {
                     item.RuleFor(x => x.ProductId)
                         .GreaterThan(0).WithMessage("Geçersiz Ürün Id.");
+
+                    item.RuleFor(x => x.Quantity)
+                        .GreaterThan(0).WithMessage("Ürün adedi en az 1 olmalıdır.");
                 });
             });
+
         }
     }
 }

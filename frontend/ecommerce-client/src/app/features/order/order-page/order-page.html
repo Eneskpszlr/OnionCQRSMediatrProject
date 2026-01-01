@@ -1,67 +1,122 @@
-<h3>Order List</h3>
+<div class="container">
+  <h3>Sipariş Yönetimi</h3>
 
-<form (submit)="addOrder($event)">
-  <input
-    type="text"
-    placeholder="Adres"
-    [value]="newShippingAddress()"
-    (input)="onNewShippingAddressChange($event)"
-  />
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Kullanıcı</th>
+        <th>Tarih</th>
+        <th>Tutar</th>
+        <th>Adres</th>
+        <th>İşlemler</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (o of orders(); track o.id) {
+        <tr>
+          <td>{{ o.id }}</td>
+          <td>{{ o.appUserName }}</td>
+          <td>{{ o.createdDate | date:'short' }}</td>
+          <td>{{ o.totalPrice | currency:'TRY':'symbol-narrow' }}</td>
+          <td>{{ o.shippingAddress }}</td>
+          <td>
+            <button (click)="startUpdate(o)">Detay/Düzenle</button>
+            <button (click)="onDelete(o.id)">Sil</button>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
 
-  <input
-    type="number"
-    placeholder="AppUser Id"
-    [value]="newAppUserId()"
-    (input)="onNewAppUserIdChange($event)"
-  />
+  <hr>
 
-  <button type="submit">Ekle</button>
-</form>
+  @if (selectedOrder()) {
+    <h4>Siparişi Düzenle (#{{selectedOrder()?.id}})</h4>
+    
+    <form [formGroup]="updateForm" (ngSubmit)="onUpdate()" style="flex-direction: column; align-items: start;">
+        
+        <div style="display: flex; gap: 10px; width: 100%;">
+            <input type="text" formControlName="shippingAddress" placeholder="Adres" style="flex: 2;">
+            <select formControlName="appUserId" style="flex: 1;">
+                @for (u of appUsers(); track u.id) {
+                    <option [ngValue]="u.id">{{ u.userName }}</option>
+                }
+            </select>
+        </div>
 
-<hr />
+        <div class="items-container" formArrayName="items">
+            <h5>Sipariş Detayları</h5>
+            
+            @for (control of updateItemsArray.controls; track $index) {
+                <div class="item-row" [formGroupName]="$index">
+                    <span>{{ $index + 1 }}.</span>
+                    
+                    <select formControlName="productId">
+                        @for (p of products(); track p.id) {
+                            <option [ngValue]="p.id">{{ p.productName }} ({{ p.unitPrice }} TL)</option>
+                        }
+                    </select>
 
-<table>
-  <thead>
-    <tr>
-      <th>Id</th>
-      <th>Adres</th>
-      <th>AppUserId</th>
-      <th>İşlemler</th>
-    </tr>
-  </thead>
+                    <input type="number" formControlName="quantity" placeholder="Adet" style="width: 80px;">
 
-  <tbody>
-    <tr *ngFor="let order of orders()">
-      <td>{{ order.id }}</td>
-      <td>{{ order.shippingAddress }}</td>
-      <td>{{ order.appUserId }}</td>
-      <td>
-        <button (click)="startEdit(order)">Güncelle</button>
-        <button (click)="deleteOrder(order.id)">Sil</button>
-      </td>
-    </tr>
-  </tbody>
-</table>
+                    <button type="button" (click)="removeItemFromUpdate($index)" style="background: #a33;">Sil</button>
+                </div>
+            }
+            <button type="button" class="add-btn" (click)="addItemToUpdate()">+ Yeni Ürün Ekle</button>
+        </div>
 
-<div *ngIf="selectedOrder()">
-  <h4>Seçili Sipariş Güncelle</h4>
+        <div style="margin-top: 15px;">
+            <button type="submit">Güncelle</button>
+            <button type="button" (click)="cancelUpdate()">İptal</button>
+        </div>
+    </form>
 
-  <form (submit)="updateOrder($event)">
-    <input
-      type="text"
-      placeholder="Adres"
-      [value]="editShippingAddress()"
-      (input)="onEditShippingAddressChange($event)"
-    />
+  } @else {
+    <h4>Yeni Sipariş Oluştur</h4>
+    
+    <form [formGroup]="createForm" (ngSubmit)="onCreate()" style="flex-direction: column; align-items: start;">
+        
+        <div style="display: flex; gap: 10px; width: 100%;">
+            <div class="form-group" style="flex: 2;">
+                <input type="text" formControlName="shippingAddress" placeholder="Teslimat Adresi">
+                <small class="error-text">{{ getErrorMessage(createForm, 'shippingAddress') }}</small>
+            </div>
+            
+            <div class="form-group" style="flex: 1;">
+                <select formControlName="appUserId">
+                    <option [ngValue]="0" disabled>Kullanıcı Seçiniz</option>
+                    @for (u of appUsers(); track u.id) {
+                        <option [ngValue]="u.id">{{ u.userName }}</option>
+                    }
+                </select>
+                <small class="error-text">{{ getErrorMessage(createForm, 'appUserId') }}</small>
+            </div>
+        </div>
 
-    <input
-      type="number"
-      placeholder="AppUser Id"
-      [value]="editAppUserId()"
-      (input)="onEditAppUserIdChange($event)"
-    />
+        <div class="items-container" formArrayName="items">
+            <h5>Sepet</h5>
+            
+            @for (control of createItemsArray.controls; track $index) {
+                <div class="item-row" [formGroupName]="$index">
+                    <span>{{ $index + 1 }}.</span>
+                    
+                    <select formControlName="productId">
+                        <option [ngValue]="0" disabled>Ürün Seç</option>
+                        @for (p of products(); track p.id) {
+                            <option [ngValue]="p.id">{{ p.productName }} ({{ p.unitPrice }} TL)</option>
+                        }
+                    </select>
 
-    <button type="submit">Kaydet</button>
-    <button type="button" (click)="cancelEdit()">İptal</button>
-  </form>
+                    <input type="number" formControlName="quantity" placeholder="Adet" min="1" style="width: 80px;">
+                    
+                    <button type="button" (click)="removeItemFromCreate($index)" style="background: #a33;">Sil</button>
+                </div>
+            }
+            <button type="button" class="add-btn" (click)="addItemToCreate()">+ Ürün Ekle</button>
+        </div>
+
+        <button type="submit" style="margin-top: 15px;">Siparişi Tamamla</button>
+    </form>
+  }
 </div>

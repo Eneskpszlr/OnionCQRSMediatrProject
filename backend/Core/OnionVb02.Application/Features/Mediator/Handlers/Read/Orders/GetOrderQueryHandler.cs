@@ -27,12 +27,15 @@ namespace OnionVb02.Application.CqrsAndMediatr.Mediator.Handlers.Read.Orders
                 ShippingAddress = x.ShippingAddress,
                 AppUserId = x.AppUserId,
                 CreatedDate = x.CreatedDate,
+                TotalPrice = x.OrderDetails.Sum(d => d.UnitPrice * d.Quantity),
+                AppUserName = x.AppUser.UserName,
 
                 Items = x.OrderDetails.Select(d => new OrderItemListDto
                 {
+                    ProductId = d.ProductId,
                     ProductName = d.Product.ProductName,
                     UnitPrice = d.Product.UnitPrice,
-                    // Quantity = d.Quantity
+                    Quantity = d.Quantity,
                 }).ToList()
 
 

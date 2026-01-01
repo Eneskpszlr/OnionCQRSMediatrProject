@@ -12,7 +12,7 @@ using OnionVb02.Persistence.ContextClasses;
 namespace OnionVb02.Persistence.Migrations
 {
     [DbContext(typeof(MyContext))]
-    [Migration("20251231230302_Mig1")]
+    [Migration("20260101164913_Mig1")]
     partial class Mig1
     {
         /// <inheritdoc />
@@ -194,8 +194,14 @@ namespace OnionVb02.Persistence.Migrations
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
+                    b.Property<int>("Quantity")
+                        .HasColumnType("int");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("UpdatedDate")
                         .HasColumnType("datetime2");

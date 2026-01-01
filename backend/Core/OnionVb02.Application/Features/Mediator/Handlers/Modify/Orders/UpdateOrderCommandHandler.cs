@@ -9,15 +9,18 @@ namespace OnionVb02.Application.CqrsAndMediatr.Mediator.Handlers.Modify.Orders
 {
     public class UpdateOrderCommandHandler : IRequestHandler<UpdateOrderCommand, UpdateOrderCommandResult>
     {
-        private readonly IOrderRepository _repository;
-        public UpdateOrderCommandHandler(IOrderRepository repository)
+        private readonly IOrderRepository _orderRepository;
+        private readonly IProductRepository _productRepository;
+
+        public UpdateOrderCommandHandler(IOrderRepository orderRepository, IProductRepository productRepository)
         {
-            _repository = repository;
+            _orderRepository = orderRepository;
+            _productRepository = productRepository;
         }
-        
+
         public async Task<UpdateOrderCommandResult> Handle(UpdateOrderCommand request, CancellationToken cancellationToken)
         {
-            var entity = await _repository.GetByIdWithDetailsAsync(request.Id);
+            var entity = await _orderRepository.GetByIdWithDetailsAsync(request.Id);
 
             if (entity == null)
                 throw new NotFoundException("Sipariş bulunamadı.");
@@ -36,16 +39,22 @@ namespace OnionVb02.Application.CqrsAndMediatr.Mediator.Handlers.Modify.Orders
                 // Yeni listeyi ekle
                 foreach (var itemDto in request.Items)
                 {
-                    entity.OrderDetails.Add(new OrderDetail
+                    var product = await _productRepository.GetByIdAsync(itemDto.ProductId);
+
+                    if (product != null)
                     {
-                        ProductId = itemDto.ProductId,
-                        // Quantity = itemDto.Quantity, // İleride
-                        Order = entity
-                    });
+                        entity.OrderDetails.Add(new OrderDetail
+                        {
+                            ProductId = itemDto.ProductId,
+                            Quantity = itemDto.Quantity,
+                            UnitPrice = product.UnitPrice, // Güncel fiyat
+                            Order = entity
+                        });
+                    }
                 }
             }
 
-            await _repository.SaveChangesAsync();
+            await _orderRepository.SaveChangesAsync();
 
             return new UpdateOrderCommandResult
             {

@@ -1,0 +1,21 @@
+.item-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    background: #1c2029;
+    padding: 10px;
+    border-radius: 4px;
+    margin-bottom: 5px;
+    border-left: 3px solid #4f8bff;
+}
+
+.items-container {
+    margin-top: 10px;
+    width: 100%;
+}
+
+.add-btn {
+    background: #4a4a6a; /* Daha soft bir renk */
+    margin-top: 5px;
+    font-size: 11px;
+}

@@ -18,6 +18,7 @@ namespace OnionVb02.Persistence.RepositoryConcretes
             return await _context.Orders
                                  .Include(x => x.OrderDetails)
                                  .ThenInclude(x => x.Product)
+                                 .Include(x => x.AppUser)
                                  .FirstOrDefaultAsync(x => x.Id == id);
         }
 
@@ -26,6 +27,7 @@ namespace OnionVb02.Persistence.RepositoryConcretes
             return await _context.Orders
                                  .Include(x => x.OrderDetails)       // Detay tablosuna git
                                  .ThenInclude(x => x.Product)        // Oradan Ürün tablosuna git (İsim için)
+                                 .Include(x => x.AppUser)
                                  .OrderByDescending(x => x.CreatedDate) // Genelde en son sipariş en üste gelir
                                  .ToListAsync();
         }

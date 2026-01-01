@@ -1,135 +1,115 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-
+import { Component, signal, inject, OnInit } from '@angular/core';
+import { AbstractControl, ReactiveFormsModule } from '@angular/forms';
 import { CategoryService } from '../../../core/services/api/category-service';
-import { Category } from '../../../core/models/category.model';
-import { CategoryUpsert } from '../../../core/models/category-upsert.model';
+import { CategoryResponseModel } from '../../../core/models/categories/categoryResponseModel';
+import { createCategoryForm, toCreateCategoryRequest } from '../../../core/validations/categories/createCategoryFormFactory';
+import { updateCategoryForm, toUpdateCategoryRequest } from '../../../core/validations/categories/updateCategoryFormFactory';
 
 @Component({
-  selector: 'app-category-page',
-  imports: [CommonModule],
+  selector: 'app-category-operation',
+  imports: [ReactiveFormsModule],
   templateUrl: './category-page.html',
   styleUrl: './category-page.css',
 })
-export class CategoryPage implements OnInit {
-
+export class CategoryOperation implements OnInit {
   private categoryService = inject(CategoryService);
 
-  // READ
-  protected categories = signal<Category[]>([]);
+  // Listeler ve Seçili Veri
+  protected categories = signal<CategoryResponseModel[]>([]);
+  protected selectedCategory = signal<CategoryResponseModel | null>(null);
 
-  // seçili kategori
-  protected selectedCategory = signal<Category | null>(null);
+  // Form Factory'den gelen formlar
+  protected createForm = createCategoryForm();
+  protected updateForm = updateCategoryForm();
 
-  // CREATE inputs
-  protected newCategoryName = signal<string>('');
-  protected newCategoryDescription = signal<string>('');
-
-  // UPDATE inputs (edit alanları)
-  protected editCategoryName = signal<string>('');
-  protected editCategoryDescription = signal<string>('');
-
-  async ngOnInit(): Promise<void> {
-    await this.loadCategories();
-  }
-
-  async loadCategories(): Promise<void> {
-    this.categories.set(await this.categoryService.getAll());
-  }
-
-  /* ---------------- CREATE ---------------- */
-
-  onNewCategoryNameChange(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.newCategoryName.set(value);
-  }
-
-  onNewCategoryDescriptionChange(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.newCategoryDescription.set(value);
-  }
-
-  async addCategory(event: Event): Promise<void> {
-    event.preventDefault();
-
-    const body: CategoryUpsert = {
-      categoryName: this.newCategoryName(),
-      description: this.newCategoryDescription(),
-    };
-
+  // Verileri Getir
+  private async refreshCategories(): Promise<void> {
     try {
-      await this.categoryService.create(body);
-      await this.loadCategories();
-
-      this.newCategoryName.set('');
-      this.newCategoryDescription.set('');
+      const values = await this.categoryService.getAll();
+      this.categories.set(values);
     } catch (error) {
-      console.log(error);
+      console.log("Kategori listesi alınamadı:", error);
     }
   }
 
-  /* ---------------- DELETE ---------------- */
+  async ngOnInit(): Promise<void> {
+    await this.refreshCategories();
+  }
 
-  async deleteCategory(id: number): Promise<void> {
-    // if (!confirm('Silmek istediğine emin misin?')) return;
+  // --- CREATE ---
+  async onCreate(): Promise<void> {
+    if (this.createForm.invalid) {
+      this.createForm.markAllAsTouched();
+      return;
+    }
+
+    const req = toCreateCategoryRequest(this.createForm);
+    await this.categoryService.create(req);
+    
+    this.createForm.reset();
+    await this.refreshCategories();
+  }
+
+  // --- UPDATE ---
+  startUpdate(cat: CategoryResponseModel) {
+    this.selectedCategory.set(cat);
+    
+    this.updateForm.patchValue(
+      {
+        id: cat.id,
+        categoryName: cat.categoryName,
+        description: cat.description,
+      },
+      { emitEvent: false }
+    );
+  }
+
+  cancelUpdate() {
+    this.selectedCategory.set(null);
+    this.updateForm.reset({ id: 0, categoryName: '', description: '' });
+  }
+
+  async onUpdate() {
+    if (this.updateForm.invalid) {
+      this.updateForm.markAllAsTouched();
+      return;
+    }
+
+    const req = toUpdateCategoryRequest(this.updateForm);
+    await this.categoryService.update(req);
+    
+    this.cancelUpdate();
+    await this.refreshCategories();
+  }
+
+  // --- DELETE ---
+  async onDelete(id: number): Promise<void> {
+    if (!window.confirm(`Id'si ${id} olan kategoriyi silmek istediğinize emin misiniz?`)) return;
 
     try {
-      await this.categoryService.remove(id);
-      await this.loadCategories();
+      await this.categoryService.deleteById(id);
+      
+      // Optimistic Update (API'yi beklemeden UI'dan sil)
+      this.categories.update((list) => list.filter((c) => c.id !== id));
 
-      // silinen seçili ise temizle
       if (this.selectedCategory()?.id === id) {
-        this.cancelEdit();
+        this.selectedCategory.set(null);
       }
     } catch (error) {
       console.log(error);
     }
   }
 
-  /* ---------------- UPDATE ---------------- */
+  // --- ERROR HELPERS ---
+  protected labels: Record<string, string> = {
+    categoryName: 'Kategori Adı',
+    description: 'Açıklama',
+  };
 
-  // Düzenle butonuna basınca seçili kategori + inputları doldur
-  startEdit(category: Category): void {
-    this.selectedCategory.set(category);
-
-    this.editCategoryName.set(category.categoryName);
-    this.editCategoryDescription.set(category.description);
-  }
-
-  onEditCategoryNameChange(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.editCategoryName.set(value);
-  }
-
-  onEditCategoryDescriptionChange(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.editCategoryDescription.set(value);
-  }
-
-  async updateCategory(event: Event): Promise<void> {
-    event.preventDefault();
-
-    const current = this.selectedCategory();
-    if (!current) return;
-
-    const body: CategoryUpsert = {
-      id: current.id,
-      categoryName: this.editCategoryName(),
-      description: this.editCategoryDescription(),
-    };
-
-    try {
-      await this.categoryService.update(body);
-      await this.loadCategories();
-      this.cancelEdit();
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  cancelEdit(): void {
-    this.selectedCategory.set(null);
-    this.editCategoryName.set('');
-    this.editCategoryDescription.set('');
+  protected getErrorMessage(control: AbstractControl | null, label = 'Alan'): string | null {
+    if (!control || !control.invalid) return null;
+    if (control.hasError('required')) return `${label} zorunludur`;
+    if (control.hasError('minlength')) return `${label} çok kısa`;
+    return `${label} geçersiz`;
   }
 }

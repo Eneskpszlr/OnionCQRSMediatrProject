@@ -1,8 +1,17 @@
-<nav style="margin-bottom:16px; display:flex; gap:12px;">
-  <a routerLink="/categories">Categories</a>
-  <a routerLink="/products">Products</a>
-  <a routerLink="/orders">Orders</a>
-  <a routerLink="/users">Users</a>
+<nav class="navbar">
+    <div class="nav-brand">
+        Admin Panel
+    </div>
+
+    <div class="nav-links">
+        <a routerLink="/categories" routerLinkActive="active">Kategoriler</a>
+        <a routerLink="/products" routerLinkActive="active">Ürünler</a>
+        <a routerLink="/orders" routerLinkActive="active">Siparişler</a>
+        <a routerLink="/users" routerLinkActive="active">Kullanıcılar</a>
+        <a routerLink="/profiles" routerLinkActive="active">Profiller</a>
+    </div>
 </nav>
 
-<router-outlet></router-outlet>
+<div class="content-wrapper">
+    <router-outlet></router-outlet>
+</div>

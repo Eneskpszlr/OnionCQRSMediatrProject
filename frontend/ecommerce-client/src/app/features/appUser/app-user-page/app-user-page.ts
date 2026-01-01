@@ -1,103 +1,127 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-
+import { Component, signal, inject, OnInit } from '@angular/core';
+import { AbstractControl, ReactiveFormsModule } from '@angular/forms';
 import { AppUserService } from '../../../core/services/api/app-user-service';
-import { AppUser } from '../../../core/models/app-user.model';
-import { AppUserUpsert } from '../../../core/models/app-user-upsert.model';
+import { appUserResponseModel } from '../../../core/models/appUsers/appUserResponseModel';
+import { createAppUserForm, toCreateAppUserRequest } from '../../../core/validations/appUsers/createAppUserFormFactory';
+import { updateAppUserForm, toUpdateAppUserRequest } from '../../../core/validations/appUsers/updateAppUserFormFactory';
 
 @Component({
-  selector: 'app-app-user-page',
-  imports: [CommonModule],
+  selector: 'app-user-operation',
+  imports: [ReactiveFormsModule],
   templateUrl: './app-user-page.html',
   styleUrl: './app-user-page.css',
 })
-export class AppUserPage implements OnInit {
-
+export class AppUserOperation implements OnInit {
   private appUserService = inject(AppUserService);
 
-  protected appUsers = signal<AppUser[]>([]);
-  protected selectedAppUser = signal<AppUser | null>(null);
+  protected appUsers = signal<appUserResponseModel[]>([]);
+  protected selectedAppUser = signal<appUserResponseModel | null>(null);
 
-  protected newUserName = signal('');
-  protected newPassword = signal('');
+  protected createForm = createAppUserForm();
+  protected updateForm = updateAppUserForm();
 
-  protected editUserName = signal('');
-  protected editPassword = signal('');
+  private async refreshAppUsers(): Promise<void> {
+    try {
+      const values = await this.appUserService.getAll();
+      this.appUsers.set(values);
+    } catch (error) {
+      console.log("Kullanıcı listesi alınamadı:", error);
+    }
+  }
 
   async ngOnInit(): Promise<void> {
-    await this.loadUsers();
+    await this.refreshAppUsers();
   }
 
-  async loadUsers(): Promise<void> {
-    this.appUsers.set(await this.appUserService.getAll());
+  // --- CREATE ---
+  async onCreate(): Promise<void> {
+    if (this.createForm.invalid) {
+      this.createForm.markAllAsTouched();
+      return;
+    }
+
+    const req = toCreateAppUserRequest(this.createForm);
+    await this.appUserService.create(req);
+    
+    this.createForm.reset();
+    await this.refreshAppUsers();
   }
 
-  /* ---------- CREATE ---------- */
-
-  onNewUserNameChange(e: Event) {
-    this.newUserName.set((e.target as HTMLInputElement).value);
-  }
-
-  onNewPasswordChange(e: Event) {
-    this.newPassword.set((e.target as HTMLInputElement).value);
-  }
-
-  async addUser(e: Event) {
-    e.preventDefault();
-
-    const body: AppUserUpsert = {
-      userName: this.newUserName(),
-      password: this.newPassword(),
-    };
-
-    await this.appUserService.create(body);
-    await this.loadUsers();
-
-    this.newUserName.set('');
-    this.newPassword.set('');
-  }
-
-  /* ---------- DELETE ---------- */
-
-  async deleteUser(id: number) {
-    await this.appUserService.remove(id);
-    await this.loadUsers();
-    if (this.selectedAppUser()?.id === id) this.cancelEdit();
-  }
-
-  /* ---------- UPDATE ---------- */
-
-  startEdit(user: AppUser) {
+  // --- UPDATE ---
+  startUpdate(user: appUserResponseModel) {
     this.selectedAppUser.set(user);
-    this.editUserName.set(user.userName);
+    
+    // Update formunda sadece ID ve Username var (Password yok)
+    this.updateForm.patchValue(
+      {
+        id: user.id,
+        userName: user.userName
+      },
+      { emitEvent: false }
+    );
   }
 
-  onEditUserNameChange(e: Event) {
-    this.editUserName.set((e.target as HTMLInputElement).value);
-  }
-
-  onEditPasswordChange(e: Event) {
-    this.editPassword.set((e.target as HTMLInputElement).value);
-  }
-
-  async updateUser(e: Event) {
-    e.preventDefault();
-    if (!this.selectedAppUser()) return;
-
-    const body: AppUserUpsert = {
-      id: this.selectedAppUser()!.id,
-      userName: this.editUserName(),
-      password: this.editPassword(),
-    };
-
-    await this.appUserService.update(body);
-    await this.loadUsers();
-    this.cancelEdit();
-  }
-
-  cancelEdit() {
+  cancelUpdate() {
     this.selectedAppUser.set(null);
-    this.editUserName.set('');
-    this.editPassword.set('');
+    this.updateForm.reset({ id: 0, userName: '' });
   }
+
+  async onUpdate() {
+    if (this.updateForm.invalid) {
+      this.updateForm.markAllAsTouched();
+      return;
+    }
+
+    const req = toUpdateAppUserRequest(this.updateForm);
+    await this.appUserService.update(req);
+    
+    this.cancelUpdate();
+    await this.refreshAppUsers();
+  }
+
+  // --- DELETE ---
+  async onDelete(id: number): Promise<void> {
+    if (!window.confirm(`Kullanıcı #${id} silinsin mi?`)) return;
+
+    try {
+      await this.appUserService.deleteById(id);
+      
+      this.appUsers.update((list) => list.filter((u) => u.id !== id));
+
+      if (this.selectedAppUser()?.id === id) {
+        this.selectedAppUser.set(null);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  }
+
+  protected labels: Record<string, string> = {
+    userName: 'Kullanıcı Adı',
+    password: 'Şifre',
+  };
+
+  protected getErrorMessage(control: AbstractControl | null, label = 'Bu alan'): string | null {
+    // 1. Kontrol yoksa veya hata yoksa null dön
+    if (!control || !control.errors) return null;
+
+    // 2. Kullanıcı dokunmadıysa ve form daha submit edilmediyse hata gösterme (Optional)
+    if (!control.touched && !control.dirty) return null;
+
+    // 3. Hata kontrolü
+    if (control.hasError('required')) 
+        return `${label} zorunludur.`;
+    
+    if (control.hasError('minlength')) {
+        const error = control.errors['minlength'];
+        return `${label} en az ${error.requiredLength} karakter olmalıdır.`;
+    }
+
+    if (control.hasError('maxlength')) {
+        const error = control.errors['maxlength'];
+        return `${label} en fazla ${error.requiredLength} karakter olmalıdır.`;
+    }
+
+    return `${label} geçersiz.`;
+}
 }

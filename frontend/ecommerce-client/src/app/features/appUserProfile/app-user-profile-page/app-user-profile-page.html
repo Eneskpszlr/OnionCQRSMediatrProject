@@ -1,0 +1,64 @@
+<div class="container">
+  <h3>Profil Listesi</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Ad</th>
+        <th>Soyad</th>
+        <th>İşlemler</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (p of appUserProfiles(); track p.id) {
+        <tr>
+          <td>{{ p.id }}</td>
+          <td>{{ p.firstName }}</td>
+          <td>{{ p.lastName }}</td>
+          <td>
+            <button (click)="startUpdate(p)">Düzenle</button>
+            <button (click)="onDelete(p.id)">Sil</button>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
+
+  <hr>
+
+  @if (selectedProfile()) {
+     <h4>Profili Güncelle</h4>
+     <form [formGroup]="updateForm" (ngSubmit)="onUpdate()">
+        <input type="text" formControlName="firstName" placeholder="Ad">
+        <input type="text" formControlName="lastName" placeholder="Soyad">
+        <button type="submit">Güncelle</button>
+        <button type="button" (click)="cancelUpdate()">İptal</button>
+     </form>
+  } @else {
+     <h4>Yeni Profil</h4>
+     <form [formGroup]="createForm" (ngSubmit)="onCreate()">
+    
+    <div class="form-group">
+        <select formControlName="appUserId">
+            <option [ngValue]="0" disabled>Kullanıcı Seçiniz</option>
+            @for (u of users(); track u.id) {
+                <option [ngValue]="u.id">{{ u.userName }}</option>
+            }
+        </select>
+        <small class="error-text">{{ getErrorMessage(createForm, 'appUserId') }}</small>
+    </div>
+
+    <div class="form-group">
+        <input type="text" formControlName="firstName" placeholder="Ad">
+        <small class="error-text">{{ getErrorMessage(createForm, 'firstName') }}</small>
+    </div>
+    <div class="form-group">
+        <input type="text" formControlName="lastName" placeholder="Soyad">
+        <small class="error-text">{{ getErrorMessage(createForm, 'lastName') }}</small>
+    </div>
+    
+    <button type="submit">Kaydet</button>
+</form>
+  }
+</div>

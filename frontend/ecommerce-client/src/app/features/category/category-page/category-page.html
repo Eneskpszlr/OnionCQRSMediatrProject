@@ -1,70 +1,67 @@
-<h3>Category List</h3>
+<div class="container">
+  <h3>Kategori Yönetimi</h3>
 
-<!-- ---------- CREATE FORM ---------- -->
-<form (submit)="addCategory($event)">
-  <input
-    type="text"
-    placeholder="Kategori Adı"
-    [value]="newCategoryName()"
-    (input)="onNewCategoryNameChange($event)"
-  />
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Kategori Adı</th>
+        <th>Açıklama</th>
+        <th style="width: 160px;">İşlemler</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (cat of categories(); track cat.id) {
+        <tr>
+          <td>{{ cat.id }}</td>
+          <td>{{ cat.categoryName }}</td>
+          <td>{{ cat.description }}</td>
+          <td>
+            <button (click)="startUpdate(cat)">Düzenle</button>
+            <button (click)="onDelete(cat.id)">Sil</button>
+          </td>
+        </tr>
+      }
+      @empty {
+        <tr>
+          <td colspan="4" style="text-align: center; color: #666;">Kayıt bulunamadı.</td>
+        </tr>
+      }
+    </tbody>
+  </table>
 
-  <input
-    type="text"
-    placeholder="Açıklama"
-    [value]="newCategoryDescription()"
-    (input)="onNewCategoryDescriptionChange($event)"
-  />
+  @if (selectedCategory()) {
+    <h4>Kategoriyi Güncelle: {{ selectedCategory()?.categoryName }}</h4>
+    <form [formGroup]="updateForm" (ngSubmit)="onUpdate()">
+      <div class="form-group">
+        <input type="text" formControlName="categoryName" placeholder="Kategori Adı">
+        <small class="error-text">{{ getErrorMessage(updateForm, 'categoryName') }}</small>
+      </div>
 
-  <button type="submit">Ekle</button>
-</form>
+      <div class="form-group">
+        <input type="text" formControlName="description" placeholder="Açıklama">
+        <small class="error-text">{{ getErrorMessage(updateForm, 'description') }}</small>
+      </div>
 
-<hr />
+      <button type="submit">Değişiklikleri Kaydet</button>
+      <button type="button" (click)="cancelUpdate()">İptal</button>
+    </form>
+  } 
+  
+  @else {
+    <h4>Yeni Kategori Ekle</h4>
+    <form [formGroup]="createForm" (ngSubmit)="onCreate()">
+      <div class="form-group">
+        <input type="text" formControlName="categoryName" placeholder="Kategori Adı">
+        <small class="error-text">{{ getErrorMessage(createForm, 'categoryName') }}</small>
+      </div>
 
-<!-- ---------- CATEGORY TABLE ---------- -->
-<table>
-  <thead>
-    <tr>
-      <th>Id</th>
-      <th>Kategori Adı</th>
-      <th>Açıklama</th>
-      <th>İşlemler</th>
-    </tr>
-  </thead>
+      <div class="form-group">
+        <input type="text" formControlName="description" placeholder="Açıklama">
+        <small class="error-text">{{ getErrorMessage(createForm, 'description') }}</small>
+      </div>
 
-  <tbody>
-    <tr *ngFor="let category of categories()">
-      <td>{{ category.id }}</td>
-      <td>{{ category.categoryName }}</td>
-      <td>{{ category.description }}</td>
-      <td>
-        <button (click)="startEdit(category)">Güncelle</button>
-        <button (click)="deleteCategory(category.id)">Sil</button>
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-<!-- ---------- UPDATE FORM ---------- -->
-<div *ngIf="selectedCategory()">
-  <h4>Seçili Kategori Güncelle</h4>
-
-  <form (submit)="updateCategory($event)">
-    <input
-      type="text"
-      placeholder="Kategori Adı"
-      [value]="editCategoryName()"
-      (input)="onEditCategoryNameChange($event)"
-    />
-
-    <input
-      type="text"
-      placeholder="Açıklama"
-      [value]="editCategoryDescription()"
-      (input)="onEditCategoryDescriptionChange($event)"
-    />
-
-    <button type="submit">Kaydet</button>
-    <button type="button" (click)="cancelEdit()">İptal</button>
-  </form>
+      <button type="submit">Ekle</button>
+    </form>
+  }
 </div>

@@ -22,7 +22,7 @@ namespace OnionVb02.Application.CqrsAndMediatr.Mediator.Handlers.Modify.AppUserP
                 throw new NotFoundException("Kullanıcı Profili bulunamadı.");
             value.FirstName = request.FirstName;
             value.LastName = request.LastName;
-            value.AppUserId = request.AppUserId;
+            //value.AppUserId = request.AppUserId;
             value.Status = DataStatus.Updated;
             value.UpdatedDate = DateTime.Now;
             await _repository.SaveChangesAsync();

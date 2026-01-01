@@ -16,7 +16,7 @@ namespace OnionVb02.Application.CqrsAndMediatr.Mediator.Handlers.Read.Orders
         }
         public async Task<GetOrderByIdQueryResult> Handle(GetOrderByIdQuery request, CancellationToken cancellationToken)
         {
-            Order? value = await _repository.GetByIdWithDetailsAsync(request.Id);
+            Order value = await _repository.GetByIdWithDetailsAsync(request.Id);
             if (value == null)
                 throw new NotFoundException("Sipariş bulunamadı");
             return new GetOrderByIdQueryResult
@@ -25,13 +25,15 @@ namespace OnionVb02.Application.CqrsAndMediatr.Mediator.Handlers.Read.Orders
                 ShippingAddress = value.ShippingAddress,
                 AppUserId = value.AppUserId,
                 CreatedDate = value.CreatedDate,
-
+                TotalPrice = value.OrderDetails.Sum(d => d.UnitPrice * d.Quantity),
+                AppUserName = value.AppUser.UserName,
 
                 Items = value.OrderDetails.Select(x => new OrderItemQueryResult
                 {
                     ProductId = x.ProductId,
                     ProductName = x.Product.ProductName,
                     UnitPrice = x.Product.UnitPrice,
+                    Quantity = x.Quantity
                 }).ToList()
             };
         }

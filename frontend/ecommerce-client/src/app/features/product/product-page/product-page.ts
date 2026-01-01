@@ -1,148 +1,142 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
+import { AbstractControl, ReactiveFormsModule } from '@angular/forms';
+import { ProductService } from '../../../core/services/api/product-service';
+import { CategoryService } from '../../../core/services/api/category-service';
+import { productResponseModel } from '../../../core/models/products/productResponseModel';
+import { CategoryResponseModel } from '../../../core/models/categories/categoryResponseModel';
+import { createProductForm, toCreateProductRequest } from '../../../core/validations/products/createProductFormFactory';
+import { updateProductForm, toUpdateProductRequest } from '../../../core/validations/products/updateProductFormFactory';
 import { CommonModule } from '@angular/common';
 
-import { ProductService } from '../../../core/services/api/product-service';
-import { Product } from '../../../core/models/product.model';
-import { ProductUpsert } from '../../../core/models/product-upsert.model';
-
 @Component({
-  selector: 'app-product-page',
-  imports: [CommonModule],
+  selector: 'app-product-operation',
+  imports: [ReactiveFormsModule, CommonModule],
   templateUrl: './product-page.html',
   styleUrl: './product-page.css',
 })
-export class ProductPage implements OnInit {
-
+export class ProductOperation implements OnInit {
   private productService = inject(ProductService);
+  private categoryService = inject(CategoryService); // Kategorileri çekmek için
 
-  // READ
-  protected products = signal<Product[]>([]);
+  // Listelerimiz (Signal)
+  protected products = signal<productResponseModel[]>([]);
+  protected categories = signal<CategoryResponseModel[]>([]); // Dropdown verisi
+  
+  protected selectedProduct = signal<productResponseModel | null>(null);
 
-  // seçili product
-  protected selectedProduct = signal<Product | null>(null);
+  // Factory'den gelen formlar
+  protected createForm = createProductForm();
+  protected updateForm = updateProductForm();
 
-  // CREATE inputs
-  protected newProductName = signal<string>('');
-  protected newUnitPrice = signal<number>(0);
-  protected newCategoryId = signal<number>(0);
-
-  // UPDATE inputs
-  protected editProductName = signal<string>('');
-  protected editUnitPrice = signal<number>(0);
-  protected editCategoryId = signal<number>(0);
-
-  async ngOnInit(): Promise<void> {
-    await this.loadProducts();
-  }
-
-  async loadProducts(): Promise<void> {
-    this.products.set(await this.productService.getAll());
-  }
-
-  /* ---------------- CREATE ---------------- */
-
-  onNewProductNameChange(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.newProductName.set(value);
-  }
-
-  onNewUnitPriceChange(event: Event): void {
-    const value = +(event.target as HTMLInputElement).value;
-    this.newUnitPrice.set(value);
-  }
-
-  onNewCategoryIdChange(event: Event): void {
-    const value = +(event.target as HTMLInputElement).value;
-    this.newCategoryId.set(value);
-  }
-
-  async addProduct(event: Event): Promise<void> {
-    event.preventDefault();
-
-    const body: ProductUpsert = {
-      productName: this.newProductName(),
-      unitPrice: this.newUnitPrice(),
-      categoryId: this.newCategoryId(),
-    };
-
+  // Verileri Çekme
+  private async loadData(): Promise<void> {
     try {
-      await this.productService.create(body);
-      await this.loadProducts();
+      const [productsData, categoriesData] = await Promise.all([
+        this.productService.getAll(),
+        this.categoryService.getAll()
+      ]);
 
-      this.newProductName.set('');
-      this.newUnitPrice.set(0);
-      this.newCategoryId.set(0);
+      this.products.set(productsData);
+      this.categories.set(categoriesData);
     } catch (error) {
-      console.log(error);
+      console.log("Veriler alınamadı:", error);
     }
   }
 
-  /* ---------------- DELETE ---------------- */
+  async ngOnInit(): Promise<void> {
+    await this.loadData();
+  }
 
-  async deleteProduct(id: number): Promise<void> {
+  // Create İşlemi
+  async onCreate(): Promise<void> {
+    if (this.createForm.invalid) {
+      this.createForm.markAllAsTouched();
+      return;
+    }
+
+    const req = toCreateProductRequest(this.createForm);
+    await this.productService.create(req);
+    
+    this.createForm.reset({ unitPrice: 0, categoryId: 0 }); // Default değerlerle sıfırla
+    
+    // Sadece ürünleri yenilemek yeterli
+    const newProducts = await this.productService.getAll();
+    this.products.set(newProducts);
+  }
+
+  // Update Başlatma
+  startUpdate(prod: productResponseModel) {
+    this.selectedProduct.set(prod);
+    
+    // Formu doldur
+    this.updateForm.patchValue(
+      {
+        id: prod.id,
+        productName: prod.productName,
+        unitPrice: prod.unitPrice,
+        categoryId: prod.categoryId // Dropdown seçili gelir
+      },
+      { emitEvent: false }
+    );
+  }
+
+  cancelUpdate() {
+    this.selectedProduct.set(null);
+    this.updateForm.reset({ id: 0, unitPrice: 0});
+  }
+
+  async onUpdate() {
+    if (this.updateForm.invalid) {
+      this.updateForm.markAllAsTouched();
+      return;
+    }
+
+    const req = toUpdateProductRequest(this.updateForm);
+    await this.productService.update(req);
+    this.cancelUpdate();
+    
+    const newProducts = await this.productService.getAll();
+    this.products.set(newProducts);
+  }
+
+  // Delete İşlemi
+  async onDelete(id: number): Promise<void> {
+    if (!window.confirm(`Ürün #${id} silinsin mi?`)) return;
+
     try {
-      await this.productService.remove(id);
-      await this.loadProducts();
+      await this.productService.deleteById(id);
+      
+      // Optimistic Update (API'ye gitmeden listeden sil)
+      this.products.update((list) => list.filter((p) => p.id !== id));
 
       if (this.selectedProduct()?.id === id) {
-        this.cancelEdit();
+        this.selectedProduct.set(null);
       }
     } catch (error) {
       console.log(error);
     }
   }
 
-  /* ---------------- UPDATE ---------------- */
+  // --- HATA MESAJLARI HELPERS ---
+  protected labels: Record<string, string> = {
+    productName: 'Ürün Adı',
+    price: 'Fiyat',
+    categoryId: 'Kategori'
+  };
 
-  startEdit(product: Product): void {
-    this.selectedProduct.set(product);
-
-    this.editProductName.set(product.productName);
-    this.editUnitPrice.set(product.unitPrice);
-    this.editCategoryId.set(product.categoryId);
+  protected getErrorMessage(control: AbstractControl | null, label = 'Bu alan'): string | null {
+    if (!control || (!control.touched && !control.dirty) || !control.invalid) return null;
+    
+    if (control.hasError('required')) return `${label} zorunludur`;
+    if (control.hasError('min')) return `${label} geçerli bir değer olmalıdır`;
+    if (control.hasError('minlength')) return `${label} çok kısa`;
+    
+    return `${label} geçersiz`;
   }
 
-  onEditProductNameChange(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.editProductName.set(value);
-  }
-
-  onEditUnitPriceChange(event: Event): void {
-    const value = +(event.target as HTMLInputElement).value;
-    this.editUnitPrice.set(value);
-  }
-
-  onEditCategoryIdChange(event: Event): void {
-    const value = +(event.target as HTMLInputElement).value;
-    this.editCategoryId.set(value);
-  }
-
-  async updateProduct(event: Event): Promise<void> {
-    event.preventDefault();
-
-    const current = this.selectedProduct();
-    if (!current) return;
-
-    const body: ProductUpsert = {
-      id: current.id,
-      productName: this.editProductName(),
-      unitPrice: this.editUnitPrice(),
-      categoryId: this.editCategoryId(),
-    };
-
-    try {
-      await this.productService.update(body);
-      await this.loadProducts();
-      this.cancelEdit();
-    } catch (error) {
-      console.log(error);
-    }
-  }
-
-  cancelEdit(): void {
-    this.selectedProduct.set(null);
-    this.editProductName.set('');
-    this.editUnitPrice.set(0);
-    this.editCategoryId.set(0);
+  protected getErrorMessageByName(form: { controls: Record<string, AbstractControl> }, controlName: string): string | null {
+    const control = form.controls[controlName];
+    const label = this.labels[controlName] ?? controlName;
+    return this.getErrorMessage(control, label);
   }
 }

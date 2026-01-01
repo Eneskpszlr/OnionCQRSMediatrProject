@@ -1,7 +1,10 @@
 import { baseAppUserProfileViewModel } from "./baseAppUserProfileViewModel";
 
 export class createAppUserProfileRequestModel extends baseAppUserProfileViewModel{
-    constructor(firstName:string, lastName:string){
+    appUserId: number;
+
+    constructor(firstName:string, lastName:string, appUserId: number){
         super(firstName,lastName);
+        this.appUserId = appUserId;
     }
 }

@@ -1,50 +1,39 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { lastValueFrom } from 'rxjs';
-import { environment } from '../../../../environments/environment';
+import { Injectable, inject } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { lastValueFrom } from "rxjs";
+// Environment importu
+import { environment } from "../../../../environments/environment";
 
-import { Order } from '../../models/order.model';
-import { OrderUpsert } from '../../models/order-upsert.model';
+import { orderResponseModel } from "../../models/orders/orderResponseModel";
+import { createOrderRequestModel } from "../../models/orders/createOrderRequestModel";
+import { updateOrderRequestModel } from "../../models/orders/updateOrderRequestModel";
 
-@Injectable({providedIn: 'root'})
+@Injectable({providedIn:'root'})
 export class OrderService {
-  private http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/Order`;
+    private http = inject(HttpClient);
+    
+    // Environment kullanımı
+    private readonly url = `${environment.baseUrl}/${environment.endpoints.order}`;
 
-  getAll(): Promise<Order[]> {
-    return lastValueFrom(
-      this.http.get<Order[]>(this.apiUrl)
-    );
-  }
+    async getAll(): Promise<orderResponseModel[]> {
+        return await lastValueFrom(this.http.get<orderResponseModel[]>(this.url));
+    }
 
-  getById(id:number): Promise<Order>{
-    return lastValueFrom(
-      this.http.get<Order>(`${this.apiUrl}/${id}`)
-    );
-  }
+    async create(body: createOrderRequestModel): Promise<string> {
+        return await lastValueFrom(this.http.post(this.url, body, {
+            responseType: 'text'
+        }));
+    }
 
-  create(model: OrderUpsert): Promise<string>{
-    return lastValueFrom(
-      this.http.post(this.apiUrl,model,{
-        responseType: "text",
-      })
-    );
-  }
+    async update(body: updateOrderRequestModel): Promise<string> {
+        return await lastValueFrom(this.http.put(this.url, body, {
+            responseType: 'text'
+        }));
+    }
 
-  update(model: OrderUpsert): Promise<string>{
-    return lastValueFrom(
-      this.http.put(this.apiUrl,model,{
-        responseType: "text",
-      })
-    );
-  }
-
-  remove(id: number): Promise<string>{
-    return lastValueFrom(
-      this.http.delete(`${this.apiUrl}/${id}`, {
-        responseType: 'text',
-      })
-    );
-  }
-  
+    async deleteById(id: number): Promise<string> {
+        return await lastValueFrom(this.http.delete(`${this.url}/${id}`, { 
+            responseType: 'text' 
+        }));
+    }
 }

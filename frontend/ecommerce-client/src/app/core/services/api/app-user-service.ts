@@ -1,50 +1,38 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { lastValueFrom } from 'rxjs';
-import { environment } from '../../../../environments/environment';
-
-import { AppUser } from '../../models/app-user.model';
-import { AppUserUpsert } from '../../models/app-user-upsert.model';
-
-@Injectable({providedIn: 'root'})
+import { Injectable, inject } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { lastValueFrom } from "rxjs";
+import { environment } from "../../../../environments/environment";
+import { appUserResponseModel } from "../../models/appUsers/appUserResponseModel";
+import { createAppUserRequestModel } from "../../models/appUsers/createAppUserRequestModel";
+import { updateAppUserRequestModel } from "../../models/appUsers/updateAppUserRequestModel";
+@Injectable({providedIn:'root'})
 export class AppUserService {
-  private http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/AppUser`;
+    private http = inject(HttpClient);
+    private readonly url = `${environment.baseUrl}/${environment.endpoints.appUser}`;
 
-  getAll(): Promise<AppUser[]> {
-    return lastValueFrom(
-      this.http.get<AppUser[]>(this.apiUrl)
-    );
-  }
+    // Get list
+    async getAll(): Promise<appUserResponseModel[]> {
+        return await lastValueFrom(this.http.get<appUserResponseModel[]>(this.url));
+    }
 
-  getById(id:number): Promise<AppUser>{
-    return lastValueFrom(
-      this.http.get<AppUser>(`${this.apiUrl}/${id}`)
-    );
-  }
+    // Post : Create
+    async create(body: createAppUserRequestModel): Promise<string> {
+        return await lastValueFrom(this.http.post(this.url, body, {
+            responseType: 'text'
+        }));
+    }
 
-  create(model: AppUserUpsert): Promise<string>{
-    return lastValueFrom(
-      this.http.post(this.apiUrl,model,{
-        responseType: "text",
-      })
-    );
-  }
+    // Put: Update
+    async update(body: updateAppUserRequestModel): Promise<string> {
+        return await lastValueFrom(this.http.put(this.url, body, {
+            responseType: 'text'
+        }));
+    }
 
-  update(model: AppUserUpsert): Promise<string>{
-    return lastValueFrom(
-      this.http.put(this.apiUrl,model,{
-        responseType: "text",
-      })
-    );
-  }
-
-  remove(id: number): Promise<string>{
-    return lastValueFrom(
-      this.http.delete(`${this.apiUrl}/${id}`, {
-        responseType: 'text',
-      })
-    );
-  }
-  
+    // Delete
+    async deleteById(id: number): Promise<string> {
+        return await lastValueFrom(this.http.delete(`${this.url}/${id}`, { 
+            responseType: 'text' 
+        }));
+    }
 }

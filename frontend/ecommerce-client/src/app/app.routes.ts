@@ -1,19 +1,18 @@
 import { Routes } from '@angular/router';
-import { CategoryPage } from './features/category/category-page/category-page';
-import { ProductPage } from './features/product/product-page/product-page';
-import { OrderPage } from './features/order/order-page/order-page';
-import { AppUserPage } from './features/appUser/app-user-page/app-user-page';
-import { OrderDetailPage } from './features/orderDetail/order-detail-page/order-detail-page';
+import { CategoryOperation } from './features/category/category-page/category-page';
+import { ProductOperation } from './features/product/product-page/product-page';
+import { OrderOperation } from './features/order/order-page/order-page';
+import { AppUserOperation } from './features/appUser/app-user-page/app-user-page';
+import { AppUserProfileOperation } from './features/appUserProfile/app-user-profile-page/app-user-profile-page';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'categories', pathMatch: 'full' },
 
-  { path: 'categories', component: CategoryPage },
-  { path: 'products', component: ProductPage },
-  { path: 'orders', component: OrderPage },
-  { path: 'order-details', component: OrderDetailPage },
-
-  { path: 'users', component: AppUserPage },
+  { path: 'categories', component: CategoryOperation },
+  { path: 'products', component: ProductOperation },
+  { path: 'orders', component: OrderOperation },
+  { path: 'users', component: AppUserOperation },
+  { path: 'profiles', component: AppUserProfileOperation},
 
   { path: '**', redirectTo: 'categories' },
 ];

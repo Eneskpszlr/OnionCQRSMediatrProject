@@ -1,48 +1,39 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { lastValueFrom } from 'rxjs';
-import { environment } from '../../../../environments/environment';
-import { Category } from '../../models/category.model';
-import { CategoryUpsert } from '../../models/category-upsert.model';
+import { Injectable, inject } from "@angular/core";
+import { HttpClient } from "@angular/common/http";
+import { lastValueFrom } from "rxjs";
+// Environment importu
+import { environment } from "../../../../environments/environment";
 
-@Injectable({providedIn: 'root'})
+import { CategoryResponseModel } from "../../models/categories/categoryResponseModel";
+import { CreateCategoryRequestModel } from "../../models/categories/createCategoryRequestModel";
+import { UpdateCategoryRequestModel } from "../../models/categories/updateCategoryRequestModel";
+
+@Injectable({providedIn:'root'})
 export class CategoryService {
-  private http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/Category`;
+    private http = inject(HttpClient);
+    
+    // Environment kullanımı
+    private readonly url = `${environment.baseUrl}/${environment.endpoints.category}`;
 
-  getAll(): Promise<Category[]> {
-    return lastValueFrom(
-      this.http.get<Category[]>(this.apiUrl)
-    );
-  }
+    async getAll(): Promise<CategoryResponseModel[]> {
+        return await lastValueFrom(this.http.get<CategoryResponseModel[]>(this.url));
+    }
 
-  getById(id:number): Promise<Category>{
-    return lastValueFrom(
-      this.http.get<Category>(`${this.apiUrl}/${id}`)
-    );
-  }
+    async create(body: CreateCategoryRequestModel): Promise<string> {
+        return await lastValueFrom(this.http.post(this.url, body, {
+            responseType: 'text'
+        }));
+    }
 
-  create(model: CategoryUpsert): Promise<string>{
-    return lastValueFrom(
-      this.http.post(this.apiUrl,model,{
-        responseType: "text",
-      })
-    );
-  }
+    async update(body: UpdateCategoryRequestModel): Promise<string> {
+        return await lastValueFrom(this.http.put(this.url, body, {
+            responseType: 'text'
+        }));
+    }
 
-  update(model: CategoryUpsert): Promise<string>{
-    return lastValueFrom(
-      this.http.put(this.apiUrl,model,{
-        responseType: "text",
-      })
-    );
-  }
-
-  remove(id: number): Promise<string>{
-    return lastValueFrom(
-      this.http.delete(`${this.apiUrl}/${id}`, {
-        responseType: 'text',
-      })
-    );
-  }
+    async deleteById(id: number): Promise<string> {
+        return await lastValueFrom(this.http.delete(`${this.url}/${id}`, { 
+            responseType: 'text' 
+        }));
+    }
 }

@@ -1,65 +1,50 @@
-<h3>AppUser List</h3>
+<div class="container">
+  <h3>Kullanıcı Yönetimi</h3>
 
-<form (submit)="addUser($event)">
-  <input
-    type="text"
-    placeholder="Kullanıcı Adı"
-    [value]="newUserName()"
-    (input)="onNewUserNameChange($event)"
-  />
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Kullanıcı Adı</th>
+        <th style="width: 160px;">İşlemler</th>
+      </tr>
+    </thead>
+    <tbody>
+      @for (user of appUsers(); track user.id) {
+        <tr>
+          <td>{{ user.id }}</td>
+          <td>{{ user.userName }}</td>
+          <td>
+            <button (click)="startUpdate(user)">Düzenle</button>
+            <button (click)="onDelete(user.id)">Sil</button>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </table>
 
-  <input
-    type="password"
-    placeholder="Şifre"
-    [value]="newPassword()"
-    (input)="onNewPasswordChange($event)"
-  />
-
-  <button type="submit">Ekle</button>
-</form>
-
-<hr />
-
-<table>
-  <thead>
-    <tr>
-      <th>Id</th>
-      <th>Kullanıcı Adı</th>
-      <th>İşlemler</th>
-    </tr>
-  </thead>
-
-  <tbody>
-    <tr *ngFor="let user of appUsers()">
-      <td>{{ user.id }}</td>
-      <td>{{ user.userName }}</td>
-      <td>
-        <button (click)="startEdit(user)">Güncelle</button>
-        <button (click)="deleteUser(user.id)">Sil</button>
-      </td>
-    </tr>
-  </tbody>
-</table>
-
-<div *ngIf="selectedAppUser()">
-  <h4>Kullanıcı Güncelle</h4>
-
-  <form (submit)="updateUser($event)">
-    <input
-      type="text"
-      placeholder="Kullanıcı Adı"
-      [value]="editUserName()"
-      (input)="onEditUserNameChange($event)"
-    />
-
-    <input
-      type="password"
-      placeholder="Yeni Şifre"
-      [value]="editPassword()"
-      (input)="onEditPasswordChange($event)"
-    />
-
-    <button type="submit">Kaydet</button>
-    <button type="button" (click)="cancelEdit()">İptal</button>
-  </form>
+  @if (selectedAppUser()) {
+    <h4>Kullanıcıyı Güncelle (Şifre Değişmez)</h4>
+    <form [formGroup]="updateForm" (ngSubmit)="onUpdate()">
+      <div class="form-group">
+        <input type="text" formControlName="userName" placeholder="Kullanıcı Adı">
+        <small class="error-text">{{ getErrorMessage(updateForm, 'userName') }}</small>
+      </div>
+      <button type="submit">Güncelle</button>
+      <button type="button" (click)="cancelUpdate()">İptal</button>
+    </form>
+  } @else {
+    <h4>Yeni Kullanıcı</h4>
+    <form [formGroup]="createForm" (ngSubmit)="onCreate()">
+      <div class="form-group">
+        <input type="text" formControlName="userName" placeholder="Kullanıcı Adı">
+        <small class="error-text">{{ getErrorMessage(createForm, 'userName') }}</small>
+      </div>
+      <div class="form-group">
+        <input type="text" formControlName="password" placeholder="Şifre">
+        <small class="error-text">{{ getErrorMessage(createForm, 'password') }}</small>
+      </div>
+      <button type="submit">Kaydet</button>
+    </form>
+  }
 </div>

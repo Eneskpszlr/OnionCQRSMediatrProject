@@ -7,6 +7,5 @@ export const environment = {
     appUser: 'appUsers',
     appUserProfile: 'appUserProfiles',
     order: 'orders',
-    orderDetail: 'orderDetail'
   }
 };

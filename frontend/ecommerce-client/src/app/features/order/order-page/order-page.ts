@@ -1,131 +1,178 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, signal, inject, OnInit } from '@angular/core';
+import { AbstractControl, FormArray, ReactiveFormsModule } from '@angular/forms';
+import { OrderService } from '../../../core/services/api/order-service';
+import { ProductService } from '../../../core/services/api/product-service';
+import { AppUserService } from '../../../core/services/api/app-user-service';
+import { orderResponseModel } from '../../../core/models/orders/orderResponseModel';
+import { productResponseModel } from '../../../core/models/products/productResponseModel';
+import { appUserResponseModel } from '../../../core/models/appUsers/appUserResponseModel';
+
+// Factory Importları
+import { createOrderForm, toCreateOrderRequest } from '../../../core/validations/orders/createOrderFormFactory';
+import { updateOrderForm, toUpdateOrderRequest } from '../../../core/validations/orders/updateOrderFormFactory';
+import { createOrderItemForm } from '../../../core/validations/orders/orderItemFormFactory';
 import { CommonModule } from '@angular/common';
 
-import { OrderService } from '../../../core/services/api/order-service';
-import { Order } from '../../../core/models/order.model';
-import { OrderUpsert } from '../../../core/models/order-upsert.model';
-
 @Component({
-  selector: 'app-order-page',
-  imports: [CommonModule],
+  selector: 'app-order-operation',
+  imports: [ReactiveFormsModule, CommonModule],
   templateUrl: './order-page.html',
   styleUrl: './order-page.css',
 })
-export class OrderPage implements OnInit {
-
+export class OrderOperation implements OnInit {
   private orderService = inject(OrderService);
+  private productService = inject(ProductService);
+  private appUserService = inject(AppUserService);
 
-  // READ
-  protected orders = signal<Order[]>([]);
+  // UI State Signals
+  protected orders = signal<orderResponseModel[]>([]);
+  protected products = signal<productResponseModel[]>([]);
+  protected appUsers = signal<appUserResponseModel[]>([]);
+  
+  protected selectedOrder = signal<orderResponseModel | null>(null);
 
-  // seçili order
-  protected selectedOrder = signal<Order | null>(null);
-
-  // CREATE inputs
-  protected newShippingAddress = signal<string>('');
-  protected newAppUserId = signal<number>(0);
-
-  // UPDATE inputs
-  protected editShippingAddress = signal<string>('');
-  protected editAppUserId = signal<number>(0);
+  // Formlar
+  protected createForm = createOrderForm();
+  protected updateForm = updateOrderForm();
 
   async ngOnInit(): Promise<void> {
-    await this.loadOrders();
+    await this.refreshAllData();
   }
 
-  async loadOrders(): Promise<void> {
-    this.orders.set(await this.orderService.getAll());
-  }
-
-  /* ---------------- CREATE ---------------- */
-
-  onNewShippingAddressChange(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.newShippingAddress.set(value);
-  }
-
-  onNewAppUserIdChange(event: Event): void {
-    const value = +(event.target as HTMLInputElement).value;
-    this.newAppUserId.set(value);
-  }
-
-  async addOrder(event: Event): Promise<void> {
-    event.preventDefault();
-
-    const body: OrderUpsert = {
-      shippingAddress: this.newShippingAddress(),
-      appUserId: this.newAppUserId(),
-    };
-
+  private async refreshAllData(): Promise<void> {
     try {
-      await this.orderService.create(body);
-      await this.loadOrders();
-
-      this.newShippingAddress.set('');
-      this.newAppUserId.set(0);
-    } catch (error) {
-      console.log(error);
+      const [ordersData, productsData, appUsersData] = await Promise.all([
+        this.orderService.getAll(),
+        this.productService.getAll(),
+        this.appUserService.getAll()
+      ]);
+      
+      this.orders.set(ordersData);
+      this.products.set(productsData);
+      this.appUsers.set(appUsersData);
+    } catch (e) {
+      console.log("Veri hatası", e);
     }
   }
-
-  /* ---------------- DELETE ---------------- */
-
-  async deleteOrder(id: number): Promise<void> {
-    try {
-      await this.orderService.remove(id);
-      await this.loadOrders();
-
-      if (this.selectedOrder()?.id === id) {
-        this.cancelEdit();
-      }
-    } catch (error) {
-      console.log(error);
-    }
+  
+  // Create Formundaki 'items' dizisi
+  get createItemsArray(): FormArray {
+    return this.createForm.get('items') as FormArray;
   }
 
-  /* ---------------- UPDATE ---------------- */
+  // Update Formundaki 'items' dizisi
+  get updateItemsArray(): FormArray {
+    return this.updateForm.get('items') as FormArray;
+  }
 
-  startEdit(order: Order): void {
+  // Yeni satır ekleme (HTML butonundan çağrılır)
+  addItemToCreate() {
+    this.createItemsArray.push(createOrderItemForm());
+  }
+
+  removeItemFromCreate(index: number) {
+    this.createItemsArray.removeAt(index);
+  }
+
+  addItemToUpdate() {
+    this.updateItemsArray.push(createOrderItemForm());
+  }
+
+  removeItemFromUpdate(index: number) {
+    this.updateItemsArray.removeAt(index);
+  }
+  // ----------------------------------------------------------------
+
+  async onCreate(): Promise<void> {
+    if (this.createForm.invalid) {
+      this.createForm.markAllAsTouched();
+      return;
+    }
+
+    const req = toCreateOrderRequest(this.createForm);
+    await this.orderService.create(req);
+
+    // Formu resetle ve başlangıç haline (1 boş satır) getir
+    this.createForm.reset();
+    this.createItemsArray.clear();
+    this.addItemToCreate();
+
+    const newOrders = await this.orderService.getAll();
+    this.orders.set(newOrders);
+  }
+
+  startUpdate(order: orderResponseModel) {
     this.selectedOrder.set(order);
 
-    this.editShippingAddress.set(order.shippingAddress);
-    this.editAppUserId.set(order.appUserId);
+    // 1. Önce eski form array'i temizle
+    this.updateItemsArray.clear();
+
+    // 2. Siparişteki her ürün için form array'e yeni bir grup ekle ve doldur
+    order.items.forEach(item => {
+      const group = createOrderItemForm(); // Factory'den boş grup al
+      group.patchValue({
+        productId: item.productId,
+        quantity: item.quantity
+      });
+      this.updateItemsArray.push(group);
+    });
+
+    // 3. Header bilgilerini doldur
+    this.updateForm.patchValue({
+      id: order.id,
+      shippingAddress: order.shippingAddress,
+      appUserId: order.appUserId
+    });
   }
 
-  onEditShippingAddressChange(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.editShippingAddress.set(value);
+  cancelUpdate() {
+    this.selectedOrder.set(null);
+    this.updateForm.reset();
+    this.updateItemsArray.clear();
   }
 
-  onEditAppUserIdChange(event: Event): void {
-    const value = +(event.target as HTMLInputElement).value;
-    this.editAppUserId.set(value);
+  async onUpdate() {
+    if (this.updateForm.invalid) {
+      this.updateForm.markAllAsTouched();
+      return;
+    }
+
+    const req = toUpdateOrderRequest(this.updateForm);
+    await this.orderService.update(req);
+    
+    this.cancelUpdate();
+    
+    const newOrders = await this.orderService.getAll();
+    this.orders.set(newOrders);
   }
 
-  async updateOrder(event: Event): Promise<void> {
-    event.preventDefault();
-
-    const current = this.selectedOrder();
-    if (!current) return;
-
-    const body: OrderUpsert = {
-      id: current.id,
-      shippingAddress: this.editShippingAddress(),
-      appUserId: this.editAppUserId(),
-    };
+  async onDelete(id: number): Promise<void> {
+    if (!confirm('Siparişi silmek istediğinize emin misiniz?')) return;
 
     try {
-      await this.orderService.update(body);
-      await this.loadOrders();
-      this.cancelEdit();
-    } catch (error) {
-      console.log(error);
+      await this.orderService.deleteById(id);
+      this.orders.update(list => list.filter(o => o.id !== id));
+      
+      if (this.selectedOrder()?.id === id) {
+        this.selectedOrder.set(null);
+      }
+    } catch (e) {
+      console.log(e);
     }
   }
 
-  cancelEdit(): void {
-    this.selectedOrder.set(null);
-    this.editShippingAddress.set('');
-    this.editAppUserId.set(0);
+  // --- HATA MESAJLARI ---
+  protected labels: Record<string, string> = {
+    shippingAddress: 'Teslimat Adresi',
+    appUserId: 'Kullanıcı',
+    items: 'Ürün Listesi'
+  };
+
+  // Basit hata mesajı
+  protected getErrorMessage(control: AbstractControl | null, label = 'Alan'): string | null {
+    if (!control || !control.invalid) return null;
+    if (control.hasError('required')) return `${label} zorunludur`;
+    if (control.hasError('min')) return `${label} en az 1 olmalı`;
+    return `${label} hatalı`;
   }
 }

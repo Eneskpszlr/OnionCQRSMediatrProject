@@ -3,48 +3,33 @@ import { HttpClient } from '@angular/common/http';
 import { lastValueFrom } from 'rxjs';
 import { environment } from '../../../../environments/environment';
 
-import { Product } from '../../models/product.model';
-import { ProductUpsert } from '../../models/product-upsert.model';
-
+import { productResponseModel } from '../../models/products/productResponseModel';
+import { createProductRequestModel } from '../../models/products/createProductRequestModel';
+import { updateProductRequestModel } from '../../models/products/updateProductRequestModel';
 @Injectable({providedIn: 'root'})
 export class ProductService {
   private http = inject(HttpClient);
-  private readonly apiUrl = `${environment.apiUrl}/Product`;
+  private readonly url = `${environment.baseUrl}/${environment.endpoints.product}`;
 
-  getAll(): Promise<Product[]> {
-    return lastValueFrom(
-      this.http.get<Product[]>(this.apiUrl)
-    );
-  }
-
-  getById(id:number): Promise<Product>{
-    return lastValueFrom(
-      this.http.get<Product>(`${this.apiUrl}/${id}`)
-    );
-  }
-
-  create(model: ProductUpsert): Promise<string>{
-    return lastValueFrom(
-      this.http.post(this.apiUrl,model,{
-        responseType: "text",
-      })
-    );
-  }
-
-  update(model: ProductUpsert): Promise<string>{
-    return lastValueFrom(
-      this.http.put(this.apiUrl,model,{
-        responseType: "text",
-      })
-    );
-  }
-
-  remove(id: number): Promise<string>{
-    return lastValueFrom(
-      this.http.delete(`${this.apiUrl}/${id}`, {
-        responseType: 'text',
-      })
-    );
-  }
+  async getAll(): Promise<productResponseModel[]> {
+          return await lastValueFrom(this.http.get<productResponseModel[]>(this.url));
+      }
   
+      async create(body: createProductRequestModel): Promise<string> {
+          return await lastValueFrom(this.http.post(this.url, body, {
+              responseType: 'text'
+          }));
+      }
+  
+      async update(body: updateProductRequestModel): Promise<string> {
+          return await lastValueFrom(this.http.put(this.url, body, {
+              responseType: 'text'
+          }));
+      }
+  
+      async deleteById(id: number): Promise<string> {
+          return await lastValueFrom(this.http.delete(`${this.url}/${id}`, { 
+            responseType: 'text' 
+        }));
+      }
 }

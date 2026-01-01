@@ -13,10 +13,13 @@ namespace OnionVb02.Application.CqrsAndMediatr.Mediator.Handlers.Modify.Orders
 {
     public class CreateOrderCommandHandler : IRequestHandler<CreateOrderCommand, CreateOrderCommandResult>
     {
-        private readonly IOrderRepository _repository;
-        public CreateOrderCommandHandler(IOrderRepository repository)
+        private readonly IOrderRepository _orderRepository;
+        private readonly IProductRepository _productRepository;
+
+        public CreateOrderCommandHandler(IOrderRepository orderRepository, IProductRepository productRepository)
         {
-            _repository = repository;
+            _orderRepository = orderRepository;
+            _productRepository = productRepository;
         }
 
         public async Task<CreateOrderCommandResult> Handle(CreateOrderCommand request, CancellationToken cancellationToken)
@@ -34,19 +37,25 @@ namespace OnionVb02.Application.CqrsAndMediatr.Mediator.Handlers.Modify.Orders
                 foreach (var itemDto in request.Items)
                 {
                     // Yeni bir detay oluşturuyoruz
-                    var detail = new OrderDetail
-                    {
-                        ProductId = itemDto.ProductId,
-                        // Quantity = itemDto.Quantity, // İleride eklenebilir
-                        Order = order
-                    };
+                    var product = await _productRepository.GetByIdAsync(itemDto.ProductId);
 
-                    // Detayı, siparişin listesine ekliyoruz (Aggregate Mantığı)
-                    order.OrderDetails.Add(detail);
+                    if (product != null)
+                    {
+                        // 2. Detayı oluştur
+                        var detail = new OrderDetail
+                        {
+                            ProductId = itemDto.ProductId,
+                            Quantity = itemDto.Quantity,
+                            UnitPrice = product.UnitPrice, // GÜVENLİK İÇİN DB'DEN ALINDI
+                            Order = order
+                        };
+
+                        order.OrderDetails.Add(detail);
+                    }
                 }
             }
 
-            await _repository.CreateAsync(order);
+            await _orderRepository.CreateAsync(order);
 
             return new CreateOrderCommandResult
             {
